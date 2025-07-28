@@ -19,12 +19,11 @@ import * as Highcharts from "highcharts";
 import { useCryptoPrices } from "../composables/useCryptoPrices";
 
 type PricePoint = { time: number; price: number };
-type CryptoPrices = {
-  "BTC-USD": PricePoint[];
-  "ETH-USD": PricePoint[];
-};
+type CryptoPrices = Record<string, PricePoint[]>;
 
-const { data, pending, error } = useCryptoPrices() as {
+const selectedAssets = ["BTC-USD", "ETH-USD", "DOGE-USD", "LTC-USD", "ADA-USD"];
+
+const { data, pending, error } = useCryptoPrices(selectedAssets) as {
   data: { value: CryptoPrices | null };
   pending: any;
   error: any;
@@ -38,49 +37,79 @@ watchEffect(() => {
   const container = chartContainer.value;
 
   if (!val || !container) return;
-  if (!val["BTC-USD"] || !val["ETH-USD"]) return;
 
-  const btcSeries = val["BTC-USD"].map((p) => [p.time, p.price]);
-  const ethSeries = val["ETH-USD"].map((p) => [p.time, p.price]);
+  const seriesData: Highcharts.SeriesLineOptions[] = Object.entries(val)
+    .slice(0, 5)
+    .map(([symbol, prices]) => ({
+      type: "line",
+      name: symbol,
+      data: prices.map((p) => [p.time, p.price]),
+    }));
 
   chartInstance?.destroy();
   chartInstance = Highcharts.chart(container, {
     chart: { type: "line" },
-    title: { text: "BTC & ETH Prices (Coinbase)" },
-    subtitle: { text: "Past year - Daily closing price" },
+    title: { text: "Crypto Prices (Coinbase)" },
+    subtitle: { text: "Last 12 months – Daily close" },
     xAxis: {
       type: "datetime",
       title: { text: "Date" },
       labels: {
-        format: "{value:%b %Y}", // shows e.g., "Jul 2024"
+        format: "{value:%b %Y}",
       },
     },
     yAxis: {
       title: { text: "Price (USD)" },
     },
+    tooltip: {
+      shared: true,
+      valueDecimals: 2,
+      formatter: function () {
+        return (
+          `<b>${Highcharts.dateFormat("%b %e, %Y", this.x)}</b><br/>` +
+          this.points!.map(
+            (p) =>
+              `<span style="color:${p.color}">●</span> ${
+                p.series.name
+              }: $${p.y.toFixed(2)}`
+          ).join("<br/>")
+        );
+      },
+    },
     legend: {
-      layout: "vertical",
-      align: "right",
-      verticalAlign: "middle",
+      layout: "horizontal",
+      align: "center",
+      verticalAlign: "bottom",
+      maxHeight: 70,
+      itemStyle: {
+        textOverflow: "ellipsis",
+      },
+      navigation: {
+        activeColor: "#000",
+        animation: true,
+        arrowSize: 12,
+        style: {
+          fontWeight: "bold",
+          color: "#333",
+        },
+      },
     },
     plotOptions: {
       series: {
         label: { connectorAllowed: false },
+        showCheckbox: false,
       },
     },
-    series: [
-      { type: "line", name: "BTC", data: btcSeries },
-      { type: "line", name: "ETH", data: ethSeries },
-    ],
+    series: seriesData,
     responsive: {
       rules: [
         {
           condition: { maxWidth: 500 },
           chartOptions: {
             legend: {
-              layout: "horizontal",
-              align: "center",
-              verticalAlign: "bottom",
+              layout: "vertical",
+              align: "right",
+              verticalAlign: "middle",
             },
           },
         },

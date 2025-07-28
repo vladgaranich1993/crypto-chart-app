@@ -1,4 +1,5 @@
 import { useFetch } from "nuxt/app"
+import { Ref } from "vue"
 
 type CoincapPricePoint = {
   priceUsd: string
@@ -10,6 +11,10 @@ export type CryptoPricesResponse = {
   "ETH-USD": CoincapPricePoint[]
 }
 
-export function useCryptoPrices() {
-  return useFetch(`/api/cryptoPrices?assets=BTC-USD,ETH-USD`);
+export type PricePoint = { time: number; price: number };
+export type CryptoPrices = Record<string, PricePoint[]>;
+
+export function useCryptoPrices(assets: string[]) {
+  const assetParam = assets.join(",");
+  return useFetch<CryptoPrices>(`/api/cryptoPrices?assets=${assetParam}`);
 }
