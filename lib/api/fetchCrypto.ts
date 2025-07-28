@@ -1,21 +1,15 @@
-export async function fetchCoinbaseHistory(
-  productId: string = 'BTC-USD',
-  granularity = 86400
-) {
-  const now = new Date();
-  const end = now.toISOString();
-  const start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
-
-  const url = `https://api.exchange.coinbase.com/products/${productId}/candles?granularity=${granularity}&start=${start}&end=${end}`;
+export async function fetchCoinbaseHistory(productId: string): Promise<{ time: number; price: number }[]> {
+  const url = `https://api.exchange.coinbase.com/products/${productId}/candles?granularity=86400`;
 
   const res = await fetch(url);
-  if (!res.ok) throw new Error('Failed to fetch Coinbase data');
+  if (!res.ok) throw new Error("Failed to fetch Coinbase candles");
 
-  const data = await res.json();
+  const json = await res.json();
 
-  // Transform to format similar to CoinCap
-  return data.map((d: number[]) => ({
-    time: d[0] * 1000,
-    priceUsd: d[4].toString(), // close price
-  })).reverse(); // Coinbase returns latest first
+  return json
+    .map((candle: number[]) => ({
+      time: candle[0] * 1000,
+      price: candle[4],
+    }))
+    .sort((a: { time: number; }, b: { time: number; }) => a.time - b.time); // ascending order
 }

@@ -11,8 +11,5 @@ export type CryptoPricesResponse = {
 }
 
 export function useCryptoPrices() {
-  const { data, pending, error } = useFetch<CryptoPricesResponse>(
-    '/api/cryptoPrices?assets=bitcoin,ethereum&interval=d1'
-  )
-  return { data, pending, error }
+  return useFetch(`/api/cryptoPrices?assets=BTC-USD,ETH-USD`);
 }
